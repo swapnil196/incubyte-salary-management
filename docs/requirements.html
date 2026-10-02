@@ -1,0 +1,156 @@
+<title>Salary Management Requirements</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column on a paper-white sheet; section numerals hang in the left margin above 860px and fold inline below it. */
+:root{
+  --bg:#e8ecec; --surface:#fcfdfd; --panel:#f2f6f6; --ink:#151a1b; --muted:#5a6769;
+  --rule:#dbe2e2; --accent:#0b6b70; --accent-soft:#dcecec;
+  --flag:#8f4526; --flag-soft:#f4e8e2;
+  --display:"Newsreader",Georgia,"Times New Roman",serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1213; --surface:#161c1d; --panel:#1b2223; --ink:#e3eaea; --muted:#94a2a3;
+  --rule:#262f30; --accent:#59bbbf; --accent-soft:#122829;
+  --flag:#d28c66; --flag-soft:#291c15; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1213; --surface:#161c1d; --panel:#1b2223; --ink:#e3eaea; --muted:#94a2a3;
+  --rule:#262f30; --accent:#59bbbf; --accent-soft:#122829;
+  --flag:#d28c66; --flag-soft:#291c15; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-inline:16px;padding-block:40px 56px;-webkit-font-smoothing:antialiased}
+.sheet{max-width:880px;margin:0 auto;background:var(--surface);border:1px solid var(--rule);
+  border-radius:3px;padding-inline:clamp(20px,5vw,64px);padding-block:clamp(32px,5vw,56px)}
+.prose{max-width:66ch}
+h1,h2,h3{text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-size:clamp(2.1rem,6vw,2.9rem);font-weight:500;line-height:1.1;letter-spacing:-.015em;margin-block:.5rem .7rem}
+.standfirst{font-size:1.05rem;line-height:1.55;color:var(--muted);max-width:54ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:1rem 2rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:.76rem;color:var(--muted)}
+.meta b{display:block;font-weight:500;color:var(--ink);letter-spacing:0}
+.meta span{display:block;letter-spacing:.08em;text-transform:uppercase;font-size:.64rem;margin-bottom:.1rem}
+section{margin-top:2.75rem;display:grid;gap:0 1.75rem;grid-template-columns:1fr}
+@media(min-width:860px){section{grid-template-columns:2.25rem 1fr}}
+.num{font-family:var(--mono);font-size:.8rem;color:var(--accent);padding-top:.4rem;font-variant-numeric:tabular-nums}
+h2{font-family:var(--display);font-size:1.5rem;font-weight:500;letter-spacing:-.01em}
+.body{grid-column:1/-1}
+@media(min-width:860px){.body{grid-column:2}}
+h2+.body{margin-top:.65rem}
+p{margin:0 0 .9rem}
+p:last-child{margin-bottom:0}
+.outcomes{margin:1.1rem 0 0;padding:1.1rem 1.3rem;background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 3px 3px 0}
+.outcomes ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.outcomes li{display:grid;grid-template-columns:.95rem 1fr;gap:.7rem;min-width:0;font-size:.98rem;line-height:1.5}
+.outcomes li::before{content:"";width:5px;height:5px;margin-top:.6rem;border-radius:50%;background:var(--accent)}
+.group{margin-top:1.1rem;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.group>h3{background:var(--panel);padding:.6rem .95rem;font-family:var(--mono);font-size:.7rem;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:500;border-bottom:1px solid var(--rule)}
+.group ul{list-style:none;margin:0;padding:.25rem 0}
+.group li{display:grid;grid-template-columns:1.5rem 1fr;gap:.2rem;padding:.55rem .95rem;min-width:0;align-items:start}
+.group li+li{border-top:1px solid var(--rule)}
+.group li::before{content:"";width:.62rem;height:.34rem;margin-top:.4rem;border-left:2px solid var(--accent);
+  border-bottom:2px solid var(--accent);transform:rotate(-45deg)}
+.group b{display:block;font-weight:600;font-size:.95rem}
+.group span{display:block;color:var(--muted);font-size:.89rem;line-height:1.5;margin-top:.1rem}
+.scroll{overflow-x:auto;margin-top:1.1rem;border:1px solid var(--rule);border-radius:3px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.93rem}
+th,td{text-align:left;padding:.7rem .95rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--panel)}
+td.why{color:var(--muted);line-height:1.5}
+td.item{font-weight:500;width:34%}
+tr.flagged td{background:var(--flag-soft)}
+tr.flagged td.item{color:var(--flag)}
+tr.flagged td.why{color:var(--ink)}
+</style>
+
+<div class="sheet">
+  <header>
+    <div class="eyebrow">Requirements &middot; v1</div>
+    <h1>Salary Management</h1>
+    <p class="standfirst">A web app that replaces ACME's salary spreadsheets and answers questions about how the company pays people.</p>
+    <div class="meta">
+      <div><span>Author</span><b>Swapnil Dongre</b></div>
+      <div><span>Date</span><b>2 October 2026</b></div>
+      <div><span>Status</span><b>Written before implementation</b></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="num">01</div>
+    <h2>Goal</h2>
+    <div class="body">
+      <p class="prose">ACME's HR team tracks pay for 10,000 employees across several countries in spreadsheets, which is slow and easy to get wrong. Build web software that lets the HR Manager manage salary data and answer questions about how the organisation pays people.</p>
+      <p class="prose">The user is the <b>HR Manager at ACME</b>, who is allowed to see every employee's pay.</p>
+      <div class="outcomes">
+        <ul>
+          <li>Salary data is accurate, stored in one place, and keeps its full history.</li>
+          <li>The HR Manager can answer a question about pay across the company in under a minute, without opening Excel.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">02</div>
+    <h2>Scope and features</h2>
+    <div class="body">
+      <div class="group">
+        <h3>A &nbsp;&middot;&nbsp; Managing salary data</h3>
+        <ul>
+          <li><div><b>Employee list</b><span>Search and filter by country, department, job level and status. Paginated on the server so 10,000 records stay fast.</span></div></li>
+          <li><div><b>Employee profile</b><span>Job and personal details, plus the complete salary history for that person.</span></div></li>
+          <li><div><b>Record a pay change</b><span>Enter a new salary with an effective date and a reason, such as promotion or annual review. The previous record is kept, never overwritten.</span></div></li>
+          <li><div><b>Pay bands</b><span>Expected minimum, midpoint and maximum salary for each job level in each country.</span></div></li>
+          <li><div><b>Multiple currencies</b><span>Salaries held in local currency, with the exchange rate stored on each record so company-wide totals are consistent and repeatable.</span></div></li>
+        </ul>
+      </div>
+
+      <div class="group">
+        <h3>B &nbsp;&middot;&nbsp; Answering questions about pay</h3>
+        <ul>
+          <li><div><b>Dashboard</b><span>Total annual payroll cost, headcount, and median pay across the company in one currency.</span></div></li>
+          <li><div><b>Breakdowns</b><span>Median pay and the 25th to 75th percentile range, by country, department and job level.</span></div></li>
+          <li><div><b>Outliers</b><span>Who is paid below the minimum or above the maximum of their pay band.</span></div></li>
+          <li><div><b>Pay equity</b><span>Median pay by gender within the same job level and country, hidden for any group under 5 people so no individual's pay can be worked out.</span></div></li>
+          <li><div><b>CSV export</b><span>Download any filtered view for reports and board decks.</span></div></li>
+        </ul>
+      </div>
+
+      <div class="group">
+        <h3>C &nbsp;&middot;&nbsp; Data</h3>
+        <ul>
+          <li><div><b>Seed script</b><span>Creates 10,000 employees with realistic salaries, currencies and change history, including deliberate outliers so the dashboard has something real to show.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="num">03</div>
+    <h2>Deliberately left out</h2>
+    <div class="body">
+      <p class="prose">Each item below is a decision, not an oversight. The highlighted row is the one to add first before anyone uses this for real.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th scope="col">Not building</th><th scope="col">Reasoning</th></tr></thead>
+          <tbody>
+            <tr class="flagged"><td class="item">Login, user accounts and permissions</td><td class="why">The brief describes one trusted HR Manager. Auth is well understood and would use up build time without showing design judgment. This is the first thing to add before real use.</td></tr>
+            <tr><td class="item">Running payroll: payslips, tax, deductions</td><td class="why">A separate and heavily regulated system that differs per country. Managing salaries and paying salaries are two different products.</td></tr>
+            <tr><td class="item">Bonuses, equity and benefits</td><td class="why">Each comes with its own vesting and accrual rules. Base salary carries most of the analytical value, and the data model leaves room to add them later.</td></tr>
+            <tr><td class="item">Approval workflow for pay changes</td><td class="why">Needs the multiple users excluded above. Each change already records who made it and why, which is what a workflow would later build on.</td></tr>
+            <tr><td class="item">Bulk CSV upload</td><td class="why">The hard part is handling bad rows and conflicts, which is a lot of work for little insight. Export is included because HR genuinely needs it.</td></tr>
+            <tr><td class="item">Live currency exchange rates</td><td class="why">Reports would give a different answer each time they ran. Rates are stored in the database and saved onto each record instead.</td></tr>
+            <tr><td class="item">Translating the interface</td><td class="why">The HR Manager works in English. Currency and date formatting per country is still handled.</td></tr>
+            <tr><td class="item">Hiring, performance reviews, leave</td><td class="why">Outside the problem. The brief is about salary.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
