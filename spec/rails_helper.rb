@@ -10,13 +10,9 @@ require "shoulda/matchers"
 
 Rails.root.glob("spec/support/**/*.rb").sort.each { |f| require f }
 
-# The test database lives in memory, so there is no file to migrate against.
-# Load the schema into the connection once, at boot.
-schema = Rails.root.join("db/schema.rb")
-if schema.exist?
-  ActiveRecord::Schema.verbose = false
-  load schema
-end
+# Keeps the test schema in step with db/schema.rb, and fails loudly if a
+# migration has been written but not run.
+ActiveRecord::Migration.maintain_test_schema!
 
 RSpec.configure do |config|
   config.fixture_paths = [ Rails.root.join("spec/fixtures") ]

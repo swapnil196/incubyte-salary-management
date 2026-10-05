@@ -31,7 +31,7 @@ a user-supplied value into a SQL fragment, including column names.
 ## Tests
 
 Test-first for anything with logic: money, effective dating, statistics. Fast, deterministic,
-offline — in-memory database, frozen clock, fixed random seed. No sleeps, no network, no reliance
+offline — transactional fixtures, frozen clock, reported random seed. No sleeps, no network, no reliance
 on today's date.
 
 Run: `bundle exec rspec` and `npm test`.

@@ -49,15 +49,23 @@ Rails major version; the change is about not shipping on an unsupported runtime.
 
 Node is pinned in `.nvmrc` to 22.18.0. The machine's default `node` is v12, which Vite refuses.
 
-### Test database held in memory
+### Test database is file-backed, not in memory
 
-`config/database.yml` points the test environment at `:memory:` and `spec/rails_helper.rb` loads the
-schema into that connection once at boot. The suite leaves nothing on disk and there is no state to
-leak between runs.
+First attempt pointed the test environment at SQLite `:memory:`, on the reasoning that it would be
+faster and leave nothing on disk. It was abandoned.
 
-**Cost:** the suite runs in one process. Parallel test workers would each need their own database,
-so this choice would be revisited if suite runtime ever justified parallelism. At the current size
-it does not.
+Each connection to `:memory:` gets its **own** empty database. The schema loaded on the connection
+that `rails_helper` used, and examples then ran on a different pooled connection against nothing.
+Capping the pool to one connection did not reliably fix it, because the in-memory database only
+survives as long as that specific connection object does, and Rails 8 manages connection leasing
+itself.
+
+Now `storage/test.sqlite3` with `maintain_test_schema!`. SQLite writes go to the page cache, so the
+speed difference at this suite size is not measurable, and the setup stops fighting the framework.
+Transactional fixtures still roll back every example, so nothing leaks between tests.
+
+Worth recording as a cost that was correctly refused: the in-memory version was a micro-optimisation
+with no measured benefit, and chasing it further would have bought nothing.
 
 ### SPA fallback does not capture API paths
 
@@ -71,3 +79,39 @@ to parse markup as JSON — a confusing failure a long way from its cause. A req
 SimpleCov runs with branch coverage enabled and separate groups for services and value objects,
 which is where the logic worth covering will live. Coverage is a diagnostic, not a target; the
 intent is to see untested branches in the domain layer, not to chase a percentage.
+
+---
+
+## Phase 1 — Domain core
+
+### Reference schema: departments, job levels, FX rates
+
+**Why job levels carry a `rank`.** The meaningful ordering of seniority is not alphabetical —
+"Junior, Mid, Senior, Staff" sorts to "Junior, Mid, Senior, Staff" by luck, and "L9, L10" does not
+sort correctly at all. An explicit integer rank, uniquely indexed, keeps the ordering unambiguous
+and makes "the level above this one" a real query rather than a string comparison.
+
+**FX rate lookup is most-recent-on-or-before, not exact match.** Rates are published irregularly.
+Asking for "the USD rate on 3 March" normally means the rate published on 1 March and not yet
+superseded. An exact-date lookup would raise on most dates. This also makes backdated salary
+records convert at the rate that was actually in force at the time, which is the correct behaviour
+for "what did this cost us then".
+
+**Index design.** `idx_fx_rates_lookup` is `(currency, base_currency, rate_date)` unique. The two
+leading columns match the equality predicates and the trailing date column serves both the range
+scan and the `ORDER BY ... DESC LIMIT 1`, so the query is answered from the index without touching
+the table. The same index doubles as the uniqueness constraint.
+
+**Uniqueness is enforced twice, deliberately.** The ActiveRecord validation and the unique database
+index are not redundant. The validation produces a readable error in the normal case; the index is
+the actual guarantee, because the validation has a check-then-insert race that two concurrent
+requests can slip through.
+
+**`rate_on` raises rather than defaulting.** A missing rate could return 1.0, or nil, or the nearest
+future rate. All three silently produce a wrong number in a payroll total. Raising
+`FxRate::RateUnavailable` makes the gap visible at the point it occurs. Converting the base currency
+to itself short-circuits to exactly 1 without a query.
+
+**Scale.** The FX table holds one row per currency per publication date — hundreds of rows, read
+constantly and written rarely. It is a candidate for in-process caching if it ever shows up in a
+profile. It has not, so it is not cached.
