@@ -1,3 +1,35 @@
+# Logs and temporary files
 *.log
-tmp/
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/tmp/pids/*
+!/tmp/pids/.keep
+
+# Local database files. The schema is committed; the data is not.
+/storage/*
+!/storage/.keep
+*.sqlite3
+*.sqlite3-*
+
+# Dependencies. Bundler's install path is a local choice, not a project one.
+/.bundle
+/vendor/bundle
+node_modules
+
+# Build output
+/public/vite*
+/public/assets
+
+# Test and coverage output
+/coverage
+
+# Credentials
+/config/*.key
+
+# Local environment overrides
+*.local
+.env*.local
+
 .DS_Store

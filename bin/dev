@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+# Runs the Rails server and the Vite dev server together.
+if ! command -v foreman > /dev/null 2>&1; then
+  echo "Installing foreman..."
+  gem install foreman --no-document
+fi
+exec foreman start -f Procfile.dev "$@"

@@ -1,0 +1,31 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 8.1.4"
+gem "sqlite3", ">= 2.1"
+gem "puma", ">= 5.0"
+gem "bootsnap", require: false
+gem "tzinfo-data", platforms: %i[ windows jruby ]
+
+# Builds and serves the React bundle from this same application (ADR 001).
+gem "vite_rails", "~> 3.0"
+
+group :development, :test do
+  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "brakeman", require: false
+  # bin/bundler-audit and the CI security job both depend on this.
+  gem "bundler-audit", require: false
+  gem "rubocop-rails-omakase", require: false
+  gem "rspec-rails", "~> 8.0"
+  gem "factory_bot_rails", "~> 6.4"
+  gem "faker", "~> 3.5"
+end
+
+group :development do
+  # Fails loudly on N+1 queries rather than letting them reach production.
+  gem "bullet"
+end
+
+group :test do
+  gem "shoulda-matchers", "~> 6.4"
+  gem "simplecov", require: false
+end

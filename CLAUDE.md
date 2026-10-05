@@ -6,7 +6,7 @@ why the design is shaped the way it is.
 
 ## Stack
 
-Rails 7.2 (Ruby 3.1) · React 18 + TypeScript via `vite_rails` · Mantine · SQLite · RSpec · Vitest
+Rails 8.1 (Ruby 3.4.9, pinned in `.ruby-version`) · React 18 + TypeScript via `vite_rails` · Mantine · SQLite · RSpec · Vitest
 
 Node is pinned in `.nvmrc`. The default `node` on this machine is too old for Vite.
 

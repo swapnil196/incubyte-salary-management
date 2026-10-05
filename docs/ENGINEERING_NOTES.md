@@ -39,3 +39,35 @@ not made.
 
 - Where a choice is correct now but wrong at larger scale, the note records the trigger for
   changing it, not just the limitation.
+
+### Toolchain: Ruby 3.4.9 and Rails 8.1
+
+The machine's default Ruby was 3.1.2, which reached end of life in March 2025 and could not build
+several native gems against the current macOS SDK. Moved to Ruby 3.4.9, which also means Rails 8.1
+rather than 7.2. ADR 001 is amended accordingly. There is nothing in the design that depends on the
+Rails major version; the change is about not shipping on an unsupported runtime.
+
+Node is pinned in `.nvmrc` to 22.18.0. The machine's default `node` is v12, which Vite refuses.
+
+### Test database held in memory
+
+`config/database.yml` points the test environment at `:memory:` and `spec/rails_helper.rb` loads the
+schema into that connection once at boot. The suite leaves nothing on disk and there is no state to
+leak between runs.
+
+**Cost:** the suite runs in one process. Parallel test workers would each need their own database,
+so this choice would be revisited if suite runtime ever justified parallelism. At the current size
+it does not.
+
+### SPA fallback does not capture API paths
+
+The catch-all route that serves the React shell is constrained to exclude `/api`, `/vite` and `/up`.
+Without that constraint, a mistyped API path returns 200 with an HTML body, and the frontend tries
+to parse markup as JSON — a confusing failure a long way from its cause. A request spec asserts the
+404 directly, so the constraint cannot be removed silently.
+
+### Coverage measurement
+
+SimpleCov runs with branch coverage enabled and separate groups for services and value objects,
+which is where the logic worth covering will live. Coverage is a diagnostic, not a target; the
+intent is to see untested branches in the domain layer, not to chase a percentage.

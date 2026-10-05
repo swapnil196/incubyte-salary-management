@@ -1,6 +1,6 @@
 # ADR 001 — One Rails app serves the React SPA
 
-**Status:** Accepted · **Date:** 2 October 2026
+**Status:** Accepted · **Date:** 2 October 2026 · **Amended:** 5 October 2026 (Rails 8.1 on Ruby 3.4, see engineering notes)
 
 ## Context
 
@@ -12,7 +12,7 @@ A reviewer will clone this repository and try to run it. That weighs heavily her
 
 ## Decision
 
-One Rails 7.2 application. React with TypeScript is built by Vite through the `vite_rails` gem and
+One Rails 8.1 application. React with TypeScript is built by Vite through the `vite_rails` gem and
 served by Rails. The API lives under an explicit `/api/v1` namespace and returns JSON only.
 
 ## Consequences

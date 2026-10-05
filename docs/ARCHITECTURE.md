@@ -1,6 +1,6 @@
 # Architecture
 
-One Rails 7.2 application serving a React SPA, backed by SQLite. Decisions behind this shape are
+One Rails 8.1 application serving a React SPA, backed by SQLite. Decisions behind this shape are
 recorded in [docs/adr](adr/README.md).
 
 ## System shape
@@ -11,7 +11,7 @@ flowchart TB
         react["React 18 + TypeScript<br/>Mantine · TanStack Query"]
     end
 
-    subgraph rails["Rails 7.2 application"]
+    subgraph rails["Rails 8.1 application"]
         vite["vite_rails<br/>serves the bundle"]
         api["Api::V1 controllers<br/>JSON only"]
         services["Domain services<br/>plain Ruby objects"]
