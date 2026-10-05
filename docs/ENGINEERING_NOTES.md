@@ -115,3 +115,35 @@ to itself short-circuits to exactly 1 without a query.
 **Scale.** The FX table holds one row per currency per publication date — hundreds of rows, read
 constantly and written rarely. It is a candidate for in-process caching if it ever shows up in a
 profile. It has not, so it is not cached.
+
+### Money value object
+
+**Floats are rejected by type, not converted.** `Money#*` and `Money.from_major` raise `ArgumentError`
+when handed a `Float`. This is the point of the class. A rule in a style guide saying "don't use
+floats for money" is advice; a constructor that refuses the type is enforcement. `salary * 1.03`
+fails loudly at the call site instead of accumulating binary rounding error invisibly across 10,000
+rows. `String`, `Integer`, `BigDecimal` and `Rational` are all accepted, so the rule costs the caller
+nothing except writing `BigDecimal("1.03")`.
+
+**Currency mismatch raises, including in comparison.** `<=>` asserts matching currencies before
+comparing, so `eur < usd` raises rather than quietly comparing raw integers. Without that, sorting a
+mixed-currency collection produces an order that looks sensible and means nothing. `==` returns
+false across currencies rather than raising, because equality is a legitimate question to ask of two
+arbitrary values; ordering is not.
+
+**Rounding is half-up at the minor unit**, applied once at the boundary rather than at each step.
+Payroll convention, and tested explicitly at the .5 boundary so a future refactor to banker's
+rounding cannot pass silently.
+
+**Instances are frozen** and `hash`/`eql?` are defined together, so `Money` is safe as a Hash key and
+cannot be mutated through a shared reference.
+
+**Deliberately not built:** division, and allocation (splitting an amount across n parts without
+losing cents to rounding). Both are real money problems and neither is in scope here — nothing
+divides a salary. Adding them speculatively would mean untested code paths in the most
+correctness-sensitive class in the system.
+
+**Performance.** `Money` is a thin wrapper over an Integer and never touches the database.
+Aggregation deliberately does **not** go through it: totals are summed in SQL over
+`base_amount_cents` and wrapped in a `Money` once, at the edge. Instantiating 10,000 objects to add
+them up would be the obvious wrong turn here.

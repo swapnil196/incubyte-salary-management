@@ -2,10 +2,10 @@ require "simplecov"
 
 SimpleCov.start "rails" do
   enable_coverage :branch
-  add_filter "/spec/"
-  add_filter "/config/"
-  add_group "Services", "app/services"
-  add_group "Values", "app/values"
+  skip "/spec/"
+  skip "/config/"
+  group "Services", "app/services"
+  group "Values", "app/values"
 end
 
 RSpec.configure do |config|
