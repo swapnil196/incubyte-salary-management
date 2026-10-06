@@ -1,9 +1,28 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
+require_relative "seeds/reference_data"
+require_relative "seeds/workforce"
+
+# Rebuilds the whole dataset from scratch, deterministically.
 #
-# Example:
-#
-#   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
-#     MovieGenre.find_or_create_by!(name: genre_name)
-#   end
+# Idempotent by truncation rather than by upsert: this is demonstration data, so
+# "run it again and get exactly the same thing" is more useful than merging into
+# whatever happens to be there.
+started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+count = Integer(ENV.fetch("SEED_EMPLOYEE_COUNT", Seeds::Workforce::DEFAULT_COUNT))
+
+puts "Seeding #{count} employees..."
+
+ActiveRecord::Base.transaction do
+  # Children first: foreign keys are enforced.
+  SalaryRecord.delete_all
+  PayBand.delete_all
+  Employee.delete_all
+  FxRate.delete_all
+  JobLevel.delete_all
+  Department.delete_all
+
+  reference = Seeds::ReferenceData.call
+  Seeds::Workforce.call(reference: reference, count: count)
+end
+
+elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+puts format("Done in %.2fs", elapsed)

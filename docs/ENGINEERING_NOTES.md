@@ -272,3 +272,66 @@ Documented at the definition rather than discovered in a profiler.
 
 **Degenerate bands are allowed.** `min == mid == max` is valid: a fixed-rate role has no range. The
 check constraint enforces ordering, not distinctness.
+
+---
+
+## Phase 2 — Data
+
+### Seed: 10,000 employees in 9.3 seconds
+
+**Measured on this machine:** 10,000 employees and 32,634 salary records in **9.34s**.
+
+**Batched inserts, not ActiveRecord creates.** 42,634 rows created one at a time through
+`create!` means 42,634 round trips plus validation and callback overhead per row, which runs into
+minutes. `insert_all!` in slices of 1,000 brings it to seconds. Primary keys are assigned explicitly
+during generation, so salary records can reference their employee without a lookup pass.
+
+The trade-off is that `insert_all!` skips validations. Accepted here because the database carries
+the real constraints — the partial unique index, three check constraints, the foreign keys — so
+malformed data still cannot land. Reference data is small enough to create normally, so validations
+do run over it.
+
+**Determinism via one injected `Random`.** Every draw, including Faker's, comes from a generator
+built from a single seed. The same seed produces byte-identical data. A demo that looks different
+on every run is impossible to discuss, and the seed spec asserts this directly by generating twice
+and comparing.
+
+**Floats are used freely in generation, and that is not a contradiction.** The log-normal draw and
+the weighted picks are floats, because they produce a *distribution*. Every value is rounded to an
+integer number of cents at the moment it becomes money. Nothing stored or summed is ever a float.
+
+**Why log-normal rather than uniform.** Pay within a level clusters near the midpoint with a longer
+tail upwards. A uniform spread would put every median suspiciously close to every band midpoint and
+make the dashboard look synthetic. Measured result, by level:
+
+| Level | n | Median (EUR) |
+|---|---|---|
+| Intern | 273 | 22,865 |
+| Mid | 2,454 | 50,188 |
+| Senior | 2,177 | 66,718 |
+| Director | 766 | 147,727 |
+
+**Outliers are planted on purpose.** 5.7% below band minimum, 5.0% above maximum — partly planted,
+partly the natural tail of the distribution. An exceptions report cannot be demonstrated, or
+tested, against data containing no exceptions.
+
+**So is the gender pay gap.** The generator applies a deliberate factor to produce a small gap,
+because the pay equity view exists to surface one and a feature that always renders "no gap" is
+untested and unconvincing. The factors are an arbitrary fiction chosen to make the feature
+demonstrable. They are not a claim about any real organisation, and the seed code says so at the
+constant.
+
+**Terminated employees have no open salary record.** Their final record is closed at the termination
+date. This is semantically right — their pay ended — and it means every payroll total naturally
+excludes leavers without needing a special case, because the aggregate joins on
+`effective_to IS NULL`. Verified: 9,220 active employees, 9,220 open records, zero terminated
+employees with an open record.
+
+**`faker` moved out of the development group.** The seed has to be runnable against the deployed
+instance, and a gem scoped to development would make that fail at the point it mattered.
+
+**The seed spec runs the real generator at 60 rows.** It asserts determinism, that every active
+employee has exactly one salary in force, that no leaver has an open record, that history is
+contiguous with no gaps or overlaps, and that `base_amount_cents` is consistent with the local
+amount and the stored rate. A generator that quietly produced two open salaries would break the
+dashboard in a way no unit test elsewhere would catch.

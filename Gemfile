@@ -9,6 +9,10 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Builds and serves the React bundle from this same application (ADR 001).
 gem "vite_rails", "~> 3.0"
 
+# Used by the seed script, which has to be runnable against the deployed
+# instance, so it cannot live in the development group.
+gem "faker", "~> 3.5"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false
@@ -17,7 +21,6 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 8.0"
   gem "factory_bot_rails", "~> 6.4"
-  gem "faker", "~> 3.5"
 end
 
 group :development do
