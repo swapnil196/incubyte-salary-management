@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_100100) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_110000) do
   create_table "departments", force: :cascade do |t|
     t.string "name", null: false
     t.datetime "created_at", null: false
@@ -59,6 +59,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100100) do
     t.index ["rank"], name: "index_job_levels_on_rank", unique: true
   end
 
+  create_table "pay_bands", force: :cascade do |t|
+    t.integer "job_level_id", null: false
+    t.string "country_code", limit: 2, null: false
+    t.bigint "min_cents", null: false
+    t.bigint "mid_cents", null: false
+    t.bigint "max_cents", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["job_level_id", "country_code"], name: "idx_pay_bands_level_country", unique: true
+    t.index ["job_level_id"], name: "index_pay_bands_on_job_level_id"
+    t.check_constraint "min_cents > 0 AND min_cents <= mid_cents AND mid_cents <= max_cents", name: "chk_pay_bands_ordered"
+  end
+
   create_table "salary_records", force: :cascade do |t|
     t.integer "employee_id", null: false
     t.bigint "amount_cents", null: false
@@ -81,5 +94,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_100100) do
 
   add_foreign_key "employees", "departments"
   add_foreign_key "employees", "job_levels"
+  add_foreign_key "pay_bands", "job_levels"
   add_foreign_key "salary_records", "employees"
 end

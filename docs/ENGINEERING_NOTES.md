@@ -239,3 +239,36 @@ assertion was green for the wrong reason until the message was asserted, not jus
 **Performance.** One indexed lookup for the record in force, one `UPDATE` by primary key, one
 `INSERT`. The close uses `update_column` to skip validations and callbacks, because the record being
 closed was already valid and re-validating it would be two extra queries for no benefit.
+
+### Pay bands and compa-ratio
+
+**Bands are stored in the base currency, not in local currency.** A band answers "is this person
+paid correctly for their level here", and the comparison is against `base_amount_cents`, which is
+already in the base currency. Storing bands the same way makes the comparison apples-to-apples by
+construction, with no conversion at read time and nothing to get wrong. Rendering a band in local
+currency is a display concern.
+
+The alternative — local-currency bands with converted copies alongside — would mirror the salary
+record's shape but add six columns and a second rate snapshot to a table that exists purely as a
+reference. Not worth it for a value HR sets once per level per country.
+
+**Compa-ratio is salary over midpoint**, the standard measure, rounded to four places. That is more
+precision than anyone displays, and enough that sorting by it does not wobble between equal-looking
+values.
+
+**Band edges are inclusive.** Paid exactly at the minimum is inside the band, not below it. Tested
+at both boundaries, because off-by-one here means an employee appears on an exceptions report that
+HR then has to explain to them.
+
+**Currency mismatch raises instead of comparing.** `position_for` takes a `Money` and leaves the
+currency check to that class. Handing it a USD salary against a EUR band raises rather than
+producing a plausible and meaningless ratio. This is the payoff for making `Money` strict earlier:
+the rule is enforced once and every caller inherits it.
+
+**`Employee#pay_band` is a single-record lookup and says so.** Calling it per row in a list issues
+one query per employee. The comment on it points bulk callers at a SQL join on
+`(job_level_id, country_code)`, which is how the outliers query in the insights service will do it.
+Documented at the definition rather than discovered in a profiler.
+
+**Degenerate bands are allowed.** `min == mid == max` is valid: a fixed-rate role has no range. The
+check constraint enforces ordering, not distinctness.

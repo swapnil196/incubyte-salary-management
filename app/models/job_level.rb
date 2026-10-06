@@ -2,6 +2,7 @@
 # meaningful ordering of "Junior, Mid, Senior, Staff" is not alphabetical.
 class JobLevel < ApplicationRecord
   has_many :employees, dependent: :restrict_with_error
+  has_many :pay_bands, dependent: :destroy
 
   validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :rank, presence: true,

@@ -36,6 +36,13 @@ class Employee < ApplicationRecord
 
   def full_name = "#{first_name} #{last_name}"
 
+  # The band this employee is measured against.
+  #
+  # Single-record lookup only. Bulk paths must join pay_bands on
+  # (job_level_id, country_code) in SQL rather than calling this per row, or
+  # they issue one query per employee.
+  def pay_band = PayBand.for(job_level: job_level, country_code: country_code)
+
   def active? = terminated_on.nil?
 
   # The salary in force on a given date, which is not necessarily the current
