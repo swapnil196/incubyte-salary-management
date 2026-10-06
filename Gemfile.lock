@@ -93,6 +93,9 @@ GEM
     connection_pool (3.0.2)
     crass (1.0.7)
     date (3.5.1)
+    db-query-matchers (0.15.0)
+      activesupport (>= 4.0)
+      rspec (>= 3.0)
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
@@ -229,6 +232,10 @@ GEM
     regexp_parser (2.13.1)
     reline (0.7.0)
       io-console (~> 0.5)
+    rspec (3.13.2)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
     rspec-core (3.13.6)
       rspec-support (~> 3.13.0)
     rspec-expectations (3.13.5)
@@ -328,6 +335,7 @@ DEPENDENCIES
   brakeman
   bullet
   bundler-audit
+  db-query-matchers (~> 0.12)
   debug
   factory_bot_rails (~> 6.4)
   faker (~> 3.5)

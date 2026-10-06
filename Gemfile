@@ -28,4 +28,7 @@ end
 group :test do
   gem "shoulda-matchers", "~> 6.4"
   gem "simplecov", require: false
+  # Lets specs assert that a query count is what we think it is, so an N+1
+  # regression fails the build instead of being noticed in production.
+  gem "db-query-matchers", "~> 0.12"
 end

@@ -147,3 +147,52 @@ correctness-sensitive class in the system.
 Aggregation deliberately does **not** go through it: totals are summed in SQL over
 `base_amount_cents` and wrapped in a `Money` once, at the edge. Instantiating 10,000 objects to add
 them up would be the obvious wrong turn here.
+
+### Employee and salary schema: invariants in the database
+
+**The partial unique index is the centrepiece.**
+
+```sql
+CREATE UNIQUE INDEX idx_salary_records_current
+  ON salary_records (employee_id) WHERE effective_to IS NULL;
+```
+
+"An employee has at most one salary in force" is now a property of the data, not a promise made by
+the service layer. Two concurrent pay-change requests cannot both succeed: one gets a constraint
+violation. A spec asserts this by bypassing validations entirely and expecting
+`ActiveRecord::RecordNotUnique`, so the guarantee is tested where it actually lives.
+
+It is also the index behind the hottest query in the application — current pay for every employee —
+which it answers without touching the table.
+
+**Check constraints, not just validations.** Three of them: a termination cannot precede its hire, a
+salary period cannot end before it starts, and an amount must be positive. Each is paired with a
+spec that bypasses validations with `update_column` and expects
+`ActiveRecord::StatementInvalid`. Validations are a user-experience feature; constraints are the
+guarantee. A background job, a console session or a future bulk import does not run validations.
+
+**Equal effective dates are legal.** `effective_to >= effective_from`, not `>`. A record whose period
+starts and ends on the same day covers zero days, which is exactly right for a salary corrected the
+same day it was entered: it never applied. Forbidding it would make same-day corrections impossible.
+
+**effective_to is exclusive.** The successor applies from the day the predecessor ends, so there is
+no one-day gap and no overlap. Tested directly at the boundary.
+
+**Index choices on employees.** The directory filter index is
+`(country_code, department_id, job_level_id)`, in that order, because country is the most selective
+of the three in a multi-country organisation and leading with it eliminates the most rows earliest.
+The "active employees" index is partial on `terminated_on IS NULL`, so it indexes only the rows that
+match rather than the whole table.
+
+**N+1 prevention is asserted, not hoped for.** `with_directory_associations` eager-loads department,
+job level and current salary. A spec walks all three associations across several employees inside
+`expect { }.not_to make_database_queries`, so an N+1 reintroduced later fails the build rather than
+turning into 10,000 queries in production.
+
+**One redundancy accepted deliberately.** `t.references :employee` creates a single-column index on
+`employee_id` that duplicates the leading column of `idx_salary_records_history`. On this adapter
+`index: false` does not suppress it, and an explicit `remove_index` did not take either. It was left
+in place. The cost is one extra index to maintain on a table written once during seeding and rarely
+afterwards; the cost of continuing to chase it was more time than the write throughput is worth.
+Recorded rather than quietly dropped, because an unexplained redundant index looks like carelessness
+and this one is a decision.

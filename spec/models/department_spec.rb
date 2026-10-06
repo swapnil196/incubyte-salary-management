@@ -12,6 +12,14 @@ RSpec.describe Department do
     expect(duplicate.errors[:name]).to be_present
   end
 
+  it "refuses to delete a department that still has employees" do
+    department = create(:department)
+    create(:employee, department: department)
+
+    expect(department.destroy).to be false
+    expect(department.errors[:base]).to be_present
+  end
+
   describe ".alphabetical" do
     it "orders by name" do
       create(:department, name: "Sales")
