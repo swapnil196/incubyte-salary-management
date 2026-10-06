@@ -196,3 +196,46 @@ in place. The cost is one extra index to maintain on a table written once during
 afterwards; the cost of continuing to chase it was more time than the write throughput is worth.
 Recorded rather than quietly dropped, because an unexplained redundant index looks like carelessness
 and this one is a decision.
+
+### RecordSalaryChange
+
+The only way a salary changes. Closes the record in force and opens a new one inside one
+transaction.
+
+**Expected failures return a Result; unexpected ones raise.** A date before the hire, a missing
+exchange rate or an unrecognised reason are things a user can legitimately do, so they come back as
+`Result.failure(message)` for the controller to render. A unique-index violation from a concurrent
+write is not a user error, so it is left to raise and surface as a 500 rather than being flattened
+into a friendly message that hides a real problem.
+
+**Atomicity is tested by forcing the second half to fail.** A spec stubs `SalaryRecord.create!` to
+raise, then asserts the employee still has an open salary record. Without the transaction the close
+would commit and the insert would not, leaving someone with no current pay — silent, and invisible
+until a payroll total came out short. This is the failure mode the transaction exists to prevent, so
+it is tested directly rather than assumed from the presence of a `transaction` block.
+
+**Future-dating is rejected, deliberately.** Allowing a scheduled raise would mean the open record
+(`effective_to IS NULL`) is not actually in force yet, contradicting the invariant that the partial
+unique index encodes and that every analytics query relies on. Supporting it properly means defining
+"current" as `in_force_on(Date.current)` and giving up the index-only lookup. That is a real feature
+with a real cost, and it is out of scope. Rejected with a clear message rather than silently
+mishandled.
+
+**Backdating before the record in force is rejected.** Editing a period that has already been closed
+means splitting history, which needs the correction workflow that was scoped out. Changes dated
+within the open period are fine, including same-day.
+
+**The FX rate and its publication date are both stored.** `FxRate.conversion_on` returns the rate
+together with the date it was published, so a conversion can be explained afterwards: "100,000 USD
+at 0.92, published 1 December" rather than a number nobody can reproduce. Storing only the rate
+would make the figure correct but unauditable.
+
+**Ordering of the validation checks matters.** Amount and reason are checked before any date logic,
+and the hire-date check runs before the in-force check. Writing the spec surfaced that a test aimed
+at the in-force rule was actually tripping the hire-date rule, which means the rule was unreachable
+in that setup. Worth noting because it is the kind of thing a passing test suite hides: the
+assertion was green for the wrong reason until the message was asserted, not just the failure.
+
+**Performance.** One indexed lookup for the record in force, one `UPDATE` by primary key, one
+`INSERT`. The close uses `update_column` to skip validations and callbacks, because the record being
+closed was already valid and re-validating it would be two extra queries for no benefit.
