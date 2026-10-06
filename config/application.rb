@@ -28,6 +28,12 @@ module SalaryManagement
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Compensation data must never reach a log file or an error report.
+    config.filter_parameters += %i[
+      amount_cents amount base_amount_cents salary currency
+      email first_name last_name employee_number
+    ]
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

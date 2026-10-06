@@ -4,7 +4,7 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      # Endpoints are added in the commits that build them.
+      resources :employees, only: %i[index]
     end
   end
 

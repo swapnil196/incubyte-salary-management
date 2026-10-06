@@ -335,3 +335,70 @@ employee has exactly one salary in force, that no leaver has an open record, tha
 contiguous with no gaps or overlaps, and that `base_amount_cents` is consistent with the local
 amount and the stored rate. A generator that quietly produced two open salaries would break the
 dashboard in a way no unit test elsewhere would catch.
+
+---
+
+## Phase 3 — API
+
+### Employees directory endpoint
+
+**Measured on the seeded database** (10,000 employees, 32,634 salary records), mean of 20 runs
+including serialisation:
+
+| Request | Time |
+|---|---|
+| Default page (25, active, by name) | 5.8 ms |
+| Sorted by salary, descending | 4.7 ms |
+| Sorted by compa-ratio, descending | 4.5 ms |
+| Filtered by country and department | 5.4 ms |
+| Search term | 4.2 ms |
+| Deep page (page 300) | 4.0 ms |
+| Maximum page size (100 rows) | 11.6 ms |
+
+Target was under 300 ms. The deep-page figure is the interesting one: it confirms the earlier claim
+that offset pagination is a non-issue at this scale, so keyset pagination stays a documented upgrade
+path rather than code nobody needed.
+
+#### Security
+
+**Sort columns are whitelisted, not sanitised.** A sort column cannot be passed as a bind parameter,
+so an interpolated one is a direct injection route. `SORTABLE` maps public names to SQL fragments
+that are literals in the source file; an unrecognised value falls back to the default. A spec sends
+`sort=employees.id; DROP TABLE employees--` and asserts both that the response is a normal 200 and
+that the table still has its rows.
+
+**Page size is capped at 100.** Without a ceiling, `?per_page=999999` is a single request that
+returns every salary in the organisation. Nonsense values fall back to the default rather than
+erroring.
+
+**LIKE wildcards in the search term are escaped** with `sanitize_sql_like`. Unescaped, a search for
+`%` matches every row, and the user silently receives the entire directory instead of no results.
+Tested.
+
+**`config.filter_parameters` covers amounts, currency, email and names**, so compensation data
+cannot reach a log file or an exception report.
+
+**Unrecognised filter values are ignored rather than rejected.** An unknown `status` falls back to
+`active`. The alternative, a 422, turns a stale bookmark into an error page for no benefit.
+
+#### Performance
+
+**The count query runs against a bare `Employee` scope.** Every filter and the search term reference
+columns on `employees` alone, so the department, job level, salary and pay band joins contribute
+nothing to the count. Correctness is identical either way — all the joins are one-to-at-most-one, so
+there is no row multiplication — but this query runs on every page request, and leaving four joins
+in it to produce a number they do not affect is waste.
+
+**Two queries per page, regardless of page size.** One count, one fetch. Everything the serializer
+needs is selected in that single fetch as aliased columns, so the serializer never triggers a lazy
+load. A spec asserts `make_database_queries(count: 2)` while rendering 20 rows, so an N+1
+reintroduced later fails the build.
+
+**The pay band join is raw SQL** because the condition spans `job_level_id` and `country_code`,
+which no Rails association can express. It contains no user input.
+
+#### Design
+
+Controllers parse parameters, call one object, render. `Employees::Query` exposes `filtered_scope`
+without pagination specifically so the CSV export can reuse the identical filter set instead of
+reimplementing it and drifting out of step.
