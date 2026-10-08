@@ -19,6 +19,13 @@ module Api
         }
       end
 
+      def show
+        employee = Employee.includes(:department, :job_level, :salary_records)
+                           .find(params[:id])
+
+        render json: { data: EmployeeDetailSerializer.new(employee).as_json }
+      end
+
       private
 
       def filter_params
