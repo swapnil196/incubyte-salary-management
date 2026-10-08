@@ -402,3 +402,35 @@ which no Rails association can express. It contains no user input.
 Controllers parse parameters, call one object, render. `Employees::Query` exposes `filtered_scope`
 without pagination specifically so the CSV export can reuse the identical filter set instead of
 reimplementing it and drifting out of step.
+
+### Detail and salary-change endpoints
+
+**Percentage rises are computed over the base amount, not the local one.** An employee who relocates
+from India to the United States goes from a number in rupees to a number in dollars. Comparing those
+directly would report a 900% rise that is an artefact of the currency, not a pay change. Tested.
+
+**The amount stays a string all the way into `Money`.** The request sends `"70000.55"`, the
+controller strips it and passes the string to `Money.from_major`, which refuses Floats. Parsing to a
+Float in the controller would defeat the rule at the exact point money enters the system — the one
+place it matters most. A malformed amount is rejected rather than coerced to zero, which is what
+`"seventy thousand".to_f` would silently produce.
+
+**`base_amount_cents` and `fx_rate` are derived server-side and never read from the request.** A spec
+posts both of them along with a forged `employee_id` and asserts the response carries the
+server-computed values instead. Without strong parameters a client could write a salary that
+converts to whatever it likes, which is a quiet way to corrupt every payroll total.
+
+**A bad date is reported, not raised.** `Date.parse` on rubbish raises `Date::Error`; the controller
+catches it and passes nil, and the service reports it alongside any other problem rather than the
+controller inventing a second error vocabulary. Found while writing the spec: without the nil guard
+in the service, the comparison raised `NoMethodError` and returned a 500 for what is plainly a user
+error.
+
+**No CSRF protection, and that is currently correct.** The API is `ActionController::API` with no
+sessions and no cookies, so there is no ambient authority for a forged request to borrow. This stops
+being true the moment ADR 005's HTTP Basic guard or any real authentication is added, because the
+browser then attaches credentials automatically. Recorded here so it is not overlooked when auth
+arrives.
+
+**Expected failures return 422 with a message; a missing employee returns a JSON 404.** Neither
+falls through to the HTML shell, so the frontend never receives markup where it expects JSON.

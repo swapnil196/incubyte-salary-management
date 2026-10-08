@@ -47,6 +47,7 @@ module Salaries
 
     def validation_error
       return "amount must be positive" unless amount.positive?
+      return "effective date is missing or not a valid date" if effective_from.blank?
       return "change reason #{change_reason.inspect} is not recognised" unless valid_reason?
       return "effective date cannot be in the future" if effective_from > Date.current
       if effective_from < employee.hired_on
