@@ -4,6 +4,7 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      resource :reference, only: %i[show]
       resource :insights, only: %i[show]
 
       resources :employees, only: %i[index show] do

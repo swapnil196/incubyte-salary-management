@@ -31,3 +31,14 @@ export interface SalaryChangeInput {
 
 export const recordSalaryChange = (employeeId: number, input: SalaryChangeInput) =>
   post<{ data: unknown }>(`/employees/${employeeId}/salary_records`, { salary_record: input })
+
+export interface Reference {
+  departments: { id: number; name: string }[]
+  job_levels: { id: number; name: string; rank: number }[]
+  countries: string[]
+  change_reasons: string[]
+  currencies: string[]
+  base_currency: string
+}
+
+export const fetchReference = () => get<{ data: Reference }>("/reference").then((r) => r.data)
