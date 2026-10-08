@@ -19,6 +19,15 @@ module Api
         }
       end
 
+      def export
+        exporter = Exports::EmployeesCsv.new(filter_params)
+
+        send_data exporter.call,
+                  type: "text/csv; charset=utf-8",
+                  filename: exporter.filename,
+                  disposition: "attachment"
+      end
+
       def show
         employee = Employee.includes(:department, :job_level, :salary_records)
                            .find(params[:id])

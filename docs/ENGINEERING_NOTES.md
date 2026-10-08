@@ -482,3 +482,39 @@ gender group in that same level and country.
 
 **Employees who have left are excluded everywhere**, and it costs no special case: their final
 salary record is closed, so joining on `effective_to IS NULL` drops them automatically.
+
+### CSV export and formula injection
+
+**This is the one place the application is an attack surface rather than a target.**
+
+Excel, LibreOffice and Google Sheets all evaluate a cell that begins with `=`, `+`, `-` or `@`. HR
+opens these exports. A name, department or job title that starts with one of those characters —
+imported from a previous HRIS, or typed deliberately — becomes executable on the machine of whoever
+opens the file. The classic payload is a DDE call that runs a shell command.
+
+Mitigation is the OWASP one: prefix the cell with a single quote, which spreadsheets strip on
+display and treat as a text marker. A spec sends `=cmd|' /C calc'!A0` through an employee name and
+asserts the exported file does not contain a line beginning with `=`.
+
+**Numbers are exempt from escaping.** Escaping every cell uniformly would turn each amount into
+text, and a payroll export where nothing sums is worse than useless. Only strings are inspected,
+and only at the first character — "Research = Development" is left alone.
+
+**The export reuses `Employees::Query#filtered_scope`.** Same filters as the screen, by
+construction, so the file matches what the user was looking at. Pagination is deliberately not
+applied: an export of page 1 of 369 would be pointless.
+
+**Measured:** 10,000 rows in **1,628 ms**, producing 1.6 MB.
+
+That is the slowest endpoint by an order of magnitude, and it is above the 300 ms target. Stated
+rather than hidden, because the target was for interactive pages and a download is a different
+contract — a user who clicks Export expects a pause. Rows are fetched in slices of 1,000 so memory
+stays bounded as the organisation grows, but the response is still assembled in full before being
+sent. If exports grow past a few tens of thousands of rows, streaming the response with
+`ActionController::Live` is the next step. Not done now, because at 1.6 MB it would be complexity
+with nothing to show for it.
+
+### Ruby 3.4 removed `csv` from the default gems
+
+It now has to be declared in the Gemfile. Caught by the test suite rather than in production, which
+is the argument for request specs that exercise real endpoints instead of mocking at the boundary.

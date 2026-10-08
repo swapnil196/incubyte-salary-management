@@ -13,6 +13,9 @@ gem "vite_rails", "~> 3.0"
 # instance, so it cannot live in the development group.
 gem "faker", "~> 3.5"
 
+# No longer a default gem as of Ruby 3.4. Used by the directory export.
+gem "csv", "~> 3.3"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false

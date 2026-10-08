@@ -7,6 +7,7 @@ Rails.application.routes.draw do
       resource :insights, only: %i[show]
 
       resources :employees, only: %i[index show] do
+        get :export, on: :collection
         resources :salary_records, only: %i[create]
       end
     end
