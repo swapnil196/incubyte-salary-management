@@ -518,3 +518,35 @@ with nothing to show for it.
 
 It now has to be declared in the Gemfile. Caught by the test suite rather than in production, which
 is the argument for request specs that exercise real endpoints instead of mocking at the boundary.
+
+---
+
+## Phase 4 — User interface
+
+### The request suite depends on a frontend build
+
+The application-shell spec renders the real layout, which resolves `vite_typescript_tag` against
+Vite's manifest. If the frontend has not been built for the test environment, that spec fails with
+"can't find entrypoints/application.tsx in the manifests" — which reads like a Ruby problem and is
+actually a JavaScript one.
+
+Hit during development: the router referenced page components that did not exist yet, the build
+failed, and the resulting Ruby failure pointed at an ERB template rather than at the missing file.
+
+CI now builds assets explicitly before running RSpec, so a frontend compile error fails its own
+step with the compiler's message. `autoBuild` stays enabled locally, where the convenience is worth
+more than the clarity.
+
+### Typed suppression on the client
+
+`Distribution` and `EquityCell` are discriminated unions on `suppressed`. A component cannot read
+`median_cents` from a suppressed row, because that field does not exist on that branch of the type.
+The small-group rule is therefore enforced twice: by the service that decides to withhold, and by
+the compiler that refuses to render what was withheld.
+
+### Formatting lives in one module
+
+Money crosses the wire as integer minor units plus a currency, the same representation the backend
+stores, and is formatted only at the edge. A missing amount renders as an em dash rather than zero:
+an employee with no salary recorded is not an employee paid nothing, and a dashboard that confuses
+the two is lying.

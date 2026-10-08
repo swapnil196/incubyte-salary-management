@@ -77,5 +77,13 @@ jobs:
       - name: Run frontend tests
         run: npm test
 
+      # The application-shell request spec renders the real layout, which
+      # resolves asset tags against Vite's manifest. Building explicitly keeps
+      # the failure mode legible: a frontend build error fails this step with
+      # the compiler's message, instead of surfacing as a confusing
+      # "can't find entrypoint in the manifests" inside a Ruby spec.
+      - name: Build frontend assets
+        run: bin/vite build --mode=test
+
       - name: Run Ruby tests
         run: bundle exec rspec
