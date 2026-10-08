@@ -434,3 +434,51 @@ arrives.
 
 **Expected failures return 422 with a message; a missing employee returns a JSON 404.** Neither
 falls through to the HTML shell, so the frontend never receives markup where it expects JSON.
+
+### Insights: distributions, band status and pay equity
+
+**Measured:** full dashboard over 9,220 active employees in **79.5 ms**, in **3 queries**.
+
+| Figure | Value |
+|---|---|
+| Annual payroll | EUR 657,455,393 |
+| Median / p25 / p75 | 60,000 / 39,389 / 90,402 |
+| Band status | 524 below, 8,236 within, 460 above |
+| Pay equity cells | 219, of which 59 suppressed |
+
+**Percentiles are computed in Ruby, deliberately.** SQLite has no `percentile_cont` (ADR 004). One
+query projects the grouping keys plus a single integer column for the ~9,200 active employees, and
+every distribution on the page is derived from that one result set. The alternative — a window
+function per dimension — means five separate scans to answer five questions about the same rows.
+The threshold at which this flips is in ADR 004.
+
+**Rank arithmetic uses Rationals, not Floats.** `P25` is `Rational(1,4)`. The interpolation between
+neighbouring ranks is therefore exact, and the only rounding happens once at the end, back to whole
+cents. Consistent with the rule that no float goes near money, including when the money is being
+averaged.
+
+**Linear interpolation, matching `percentile_cont`.** For an even-sized set the median is the mean
+of the two middle values, which is what everyone expects and what Postgres would return if this
+moves there. Tested at the boundaries and against a worked example.
+
+**The payroll total is summed in SQL, not over the projected rows.** Exact at any size, and it keeps
+the headline number independent of how the rest of the class samples.
+
+**There is no mean anywhere, and a test enforces that.** One spec builds two sets differing only by
+a single executive salary, asserts the median is identical in both, and asserts the mean moves by
+thousands. The absence of a mean is a product decision, so it is pinned by a test rather than left
+to a future contributor's judgement.
+
+**Suppression applies to every dimension, not only pay equity.** A department of three identifies
+pay just as effectively as a gender group of three. Below five, the headcount is reported and the
+statistics are withheld — the group's *existence* is never hidden, because HR needs to know the
+group is there. The threshold ships in the response payload so the UI can explain a blank cell
+rather than silently rendering nothing.
+
+**Pay equity compares within level and country, never pooled.** A pooled organisation-wide gap
+mostly measures who holds the senior roles. That is a real problem, but a different one, and
+conflating the two produces a number nobody can act on. Each cell is compared against the largest
+gender group in that same level and country.
+
+**Employees who have left are excluded everywhere**, and it costs no special case: their final
+salary record is closed, so joining on `effective_to IS NULL` drops them automatically.

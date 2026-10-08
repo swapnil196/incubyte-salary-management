@@ -4,6 +4,8 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      resource :insights, only: %i[show]
+
       resources :employees, only: %i[index show] do
         resources :salary_records, only: %i[create]
       end
