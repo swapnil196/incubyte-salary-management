@@ -4,6 +4,8 @@ module Api
     # the HTML shell, so a mistyped path fails loudly instead of returning
     # markup the frontend will try to parse.
     class BaseController < ActionController::API
+      include BasicAuthGuard
+
       rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
 
       private

@@ -1,0 +1,17 @@
+.git
+.github
+.claude
+node_modules
+vendor/bundle
+/storage/*
+!/storage/.keep
+/tmp/*
+/log/*
+/public/vite*
+/public/assets
+/coverage
+spec
+docs
+*.sqlite3
+*.sqlite3-*
+.DS_Store

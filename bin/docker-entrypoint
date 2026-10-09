@@ -1,0 +1,15 @@
+#!/bin/bash -e
+
+# Prepares the database on boot. db:prepare creates and migrates when the
+# volume is empty and is a no-op afterwards, so a restart does not touch data.
+if [ "${*}" != "${*#*puma}" ]; then
+  ./bin/rails db:prepare
+
+  # Seeds only when the database has no employees, so a redeploy never
+  # overwrites real data.
+  if [ "${SEED_ON_BOOT}" = "true" ]; then
+    ./bin/rails runner 'Rails.application.load_seed if Employee.none?'
+  fi
+fi
+
+exec "${@}"

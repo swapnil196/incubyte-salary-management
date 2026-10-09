@@ -28,4 +28,6 @@ test:
 # ensure the database is located in a persisted volume.
 production:
   <<: *default
-  # database: path/to/persistent/storage/production.sqlite3
+  # Points at the mounted volume in production. SQLite needs a persistent disk;
+  # on an ephemeral filesystem the database disappears on every deploy.
+  database: <%= ENV.fetch("DATABASE_PATH", "storage/production.sqlite3") %>
