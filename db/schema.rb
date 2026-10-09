@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_06_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_08_120000) do
   create_table "departments", force: :cascade do |t|
     t.string "name", null: false
     t.datetime "created_at", null: false
@@ -37,6 +37,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_06_110000) do
     t.index ["employee_number"], name: "index_employees_on_employee_number", unique: true
     t.index ["id"], name: "idx_employees_active", where: "terminated_on IS NULL"
     t.index ["job_level_id"], name: "index_employees_on_job_level_id"
+    t.index ["last_name", "first_name"], name: "idx_employees_active_by_name", where: "terminated_on IS NULL"
     t.check_constraint "terminated_on IS NULL OR terminated_on >= hired_on", name: "chk_employees_termination_after_hire"
   end
 

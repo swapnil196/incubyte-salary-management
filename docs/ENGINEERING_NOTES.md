@@ -342,6 +342,12 @@ dashboard in a way no unit test elsewhere would catch.
 
 ### Employees directory endpoint
 
+> **These figures are wrong.** They were measured through `bin/rails runner`, which enables the
+> ActiveRecord query cache, so a loop of identical queries measured the cache rather than the
+> database. Corrected numbers, and the two conclusions this error reversed, are in
+> [PERFORMANCE.md](PERFORMANCE.md). Left here rather than edited away, because the mistake is part
+> of how the work went.
+
 **Measured on the seeded database** (10,000 employees, 32,634 salary records), mean of 20 runs
 including serialisation:
 
@@ -355,9 +361,7 @@ including serialisation:
 | Deep page (page 300) | 4.0 ms |
 | Maximum page size (100 rows) | 11.6 ms |
 
-Target was under 300 ms. The deep-page figure is the interesting one: it confirms the earlier claim
-that offset pagination is a non-issue at this scale, so keyset pagination stays a documented upgrade
-path rather than code nobody needed.
+Target was under 300 ms.
 
 #### Security
 
