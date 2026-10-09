@@ -25,7 +25,7 @@ type Handler = (url: string) => unknown
 // Routes fetch calls by path fragment. Anything unmatched throws, so a test
 // cannot silently pass against a request nobody stubbed.
 export function stubApi(routes: Record<string, Handler | unknown>) {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const url = String(input)
     const match = Object.keys(routes).find((fragment) => url.includes(fragment))
 

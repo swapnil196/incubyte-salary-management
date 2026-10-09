@@ -550,3 +550,34 @@ Money crosses the wire as integer minor units plus a currency, the same represen
 stores, and is formatted only at the edge. A missing amount renders as an em dash rather than zero:
 an employee with no salary recorded is not an employee paid nothing, and a dashboard that confuses
 the two is lying.
+
+### Insights dashboard
+
+**Headline figures are stat tiles, not charts.** Four numbers the HR Manager came for, given size
+and nothing competing with them. A chart of four unrelated scalars would be decoration.
+
+**Distributions are a range plot on one shared scale.** Each row spans p25 to p75 with a notch at
+the median, and every row is direct-labelled with its median. The scale is shared across all rows
+in a breakdown, deliberately: normalising each row to its own width would make an intern's range
+look as wide as a VP's, which is the opposite of the truth. A shared scale makes "senior pay varies
+far more in absolute terms than junior pay" readable at a glance.
+
+**One hue for magnitude, status colours kept separate.** The range plot is a single series, so it
+uses one hue at two steps. The band-status segments use the status palette — orange for below
+minimum, neutral for in band, purple for above maximum — and those never appear as a "series
+colour" elsewhere.
+
+**The palette was validated, not eyeballed.** `validate_palette.js` on the status trio against the
+light surface: lightness band PASS, chroma floor PASS, CVD separation PASS (worst adjacent pair
+ΔE 11.9 protan), normal-vision floor PASS (ΔE 27.6). Contrast against the surface came back WARN at
+2.5:1, which obliges visible labels rather than colour alone — every segment and every badge
+carries its count and its name in text, so that obligation is met.
+
+**Suppressed rows say why.** "Withheld — fewer than 5 people" in the cell, and a banner stating how
+many of the total were withheld. A blank cell with no explanation reads as a bug; a blank cell with
+a reason reads as a policy. The threshold comes from the API payload rather than being duplicated
+as a constant in the frontend.
+
+**Pay equity differences carry an explicit sign** and a diverging colour pair around a neutral
+midpoint, with anything under 0.05% treated as no difference so rounding noise is not coloured as a
+gap.
