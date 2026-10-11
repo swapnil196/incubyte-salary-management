@@ -22,6 +22,21 @@ module Employees
     DIRECTIONS = %w[asc desc].freeze
     STATUSES = %w[active terminated all].freeze
 
+    # Answers "who is outside their pay band", which the dashboard can only
+    # count. Conditions are literals in this file; the request supplies a key,
+    # never a fragment.
+    #
+    # out_of_band is the one HR actually reaches for: both directions at once,
+    # because the question is "who needs a conversation", not "who is cheap".
+    BAND_STATUS_CONDITIONS = {
+      "below_minimum" => "salary_records.base_amount_cents < pay_bands.min_cents",
+      "within_band" => "salary_records.base_amount_cents BETWEEN pay_bands.min_cents " \
+                       "AND pay_bands.max_cents",
+      "above_maximum" => "salary_records.base_amount_cents > pay_bands.max_cents",
+      "out_of_band" => "salary_records.base_amount_cents < pay_bands.min_cents " \
+                       "OR salary_records.base_amount_cents > pay_bands.max_cents"
+    }.freeze
+
     DEFAULT_SORT = "name"
     DEFAULT_DIRECTION = "asc"
     DEFAULT_STATUS = "active"
@@ -72,7 +87,7 @@ module Employees
     # (all the joins are one-to-at-most-one, so no row multiplication), but
     # this is the query that runs on every page request.
     def total_count
-      @total_count ||= apply_filters(Employee.all).count
+      @total_count ||= apply_filters(count_scope).count
     end
 
     def page = @page ||= [ params[:page].to_i, 1 ].max
@@ -93,6 +108,13 @@ module Employees
 
     def status = @status ||= STATUSES.include?(params[:status]) ? params[:status] : DEFAULT_STATUS
 
+    # nil rather than a default: no band filter is the normal case.
+    def band_status
+      return @band_status if defined?(@band_status)
+
+      @band_status = BAND_STATUS_CONDITIONS.key?(params[:band_status]) ? params[:band_status] : nil
+    end
+
     private
 
     attr_reader :params
@@ -109,7 +131,22 @@ module Employees
       scope = scope.where(country_code: country_code) if country_code
       scope = scope.where(department_id: department_id) if department_id
       scope = scope.where(job_level_id: job_level_id) if job_level_id
+      if band_status
+        scope = scope.where(Arel.sql(BAND_STATUS_CONDITIONS.fetch(band_status)))
+      end
       apply_search(apply_status(scope))
+    end
+
+    # Counting normally needs no joins at all, because every other filter reads
+    # columns on employees. A band filter is the exception: it compares the
+    # current salary against the band, so both have to be joined in. The page
+    # scope already carries them as LEFT JOINs, and the WHERE above gives those
+    # inner-join semantics, which is correct — someone with no salary or no band
+    # defined has no band status to match.
+    def count_scope
+      return Employee.all unless band_status
+
+      Employee.joins(:current_salary).joins(PAY_BAND_JOIN)
     end
 
     def decorated_scope

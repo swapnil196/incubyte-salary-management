@@ -210,3 +210,114 @@ RSpec.describe "GET /api/v1/employees" do
     end
   end
 end
+
+RSpec.describe "GET /api/v1/employees filtered by band status" do
+  let(:level) { create(:job_level, name: "Senior", rank: 4) }
+
+  def json = response.parsed_body
+
+  # Band for Senior in Germany: 50,000 – 60,000 – 70,000.
+  before do
+    create(:pay_band, job_level: level, country_code: "DE",
+                      min_cents: 50_000_00, mid_cents: 60_000_00, max_cents: 70_000_00)
+  end
+
+  def paid(cents, name:, country: "DE")
+    employee = create(:employee, last_name: name, country_code: country, job_level: level)
+    create(:salary_record, employee: employee, amount_cents: cents, base_amount_cents: cents,
+                           effective_from: employee.hired_on)
+    employee
+  end
+
+  def names = json["data"].map { |row| row["full_name"].split.last }
+
+  before do
+    paid(40_000_00, name: "Under")
+    paid(60_000_00, name: "Middle")
+    paid(80_000_00, name: "Over")
+  end
+
+  it "finds only people below the band minimum" do
+    get "/api/v1/employees", params: { band_status: "below_minimum" }
+
+    expect(names).to eq(%w[Under])
+    expect(json["meta"]).to include("total_count" => 1, "band_status" => "below_minimum")
+  end
+
+  it "finds only people above the band maximum" do
+    get "/api/v1/employees", params: { band_status: "above_maximum" }
+
+    expect(names).to eq(%w[Over])
+  end
+
+  it "finds people inside the band" do
+    get "/api/v1/employees", params: { band_status: "within_band" }
+
+    expect(names).to eq(%w[Middle])
+  end
+
+  it "finds everyone outside the band in either direction" do
+    get "/api/v1/employees", params: { band_status: "out_of_band" }
+
+    expect(names).to match_array(%w[Under Over])
+    expect(json["meta"]["total_count"]).to eq(2)
+  end
+
+  it "treats the band edges as inside the band" do
+    paid(50_000_00, name: "AtMinimum")
+    paid(70_000_00, name: "AtMaximum")
+
+    get "/api/v1/employees", params: { band_status: "out_of_band" }
+
+    expect(names).not_to include("AtMinimum", "AtMaximum")
+  end
+
+  it "excludes anyone with no band defined for their level and country" do
+    paid(1_000_00, name: "NoBand", country: "JP")
+
+    get "/api/v1/employees", params: { band_status: "out_of_band" }
+
+    # Without a band there is no status to be outside of, however low the pay.
+    expect(names).not_to include("NoBand")
+  end
+
+  it "excludes anyone with no salary recorded" do
+    create(:employee, last_name: "Unpaid", country_code: "DE", job_level: level)
+
+    get "/api/v1/employees", params: { band_status: "out_of_band" }
+
+    expect(names).not_to include("Unpaid")
+  end
+
+  it "combines with the other filters" do
+    paid(40_000_00, name: "FrenchUnder", country: "FR")
+
+    get "/api/v1/employees", params: { band_status: "below_minimum", country_code: "DE" }
+
+    expect(names).to eq(%w[Under])
+  end
+
+  it "ignores an unrecognised band status rather than returning nothing" do
+    get "/api/v1/employees", params: { band_status: "sideways" }
+
+    expect(json["meta"]["total_count"]).to eq(3)
+    expect(json["meta"]["band_status"]).to be_nil
+  end
+
+  it "does not execute SQL smuggled through the band status parameter" do
+    get "/api/v1/employees", params: { band_status: "1=1; DROP TABLE employees--" }
+
+    expect(response).to have_http_status(:ok)
+    expect(Employee.count).to eq(3)
+  end
+
+  it "counts correctly, which needs joins the other filters do not" do
+    # Regression guard: the count query runs against a bare Employee scope for
+    # every other filter. A band filter has to join the salary and the band in,
+    # or the count disagrees with the rows returned.
+    get "/api/v1/employees", params: { band_status: "out_of_band", per_page: 1 }
+
+    expect(json["data"].size).to eq(1)
+    expect(json["meta"]["total_count"]).to eq(2)
+  end
+end

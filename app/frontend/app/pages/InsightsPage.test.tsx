@@ -67,6 +67,20 @@ describe("InsightsPage", () => {
     expect(screen.getByText("Above maximum")).toBeInTheDocument()
   })
 
+  it("links each band count into the directory, filtered to those people", async () => {
+    // A dashboard that reports "524 below minimum" and offers no way to see
+    // the 524 has answered "how many" when the question was "who".
+    stubApi({ "/insights": insights() })
+
+    renderPage(<InsightsPage />)
+
+    const link = await screen.findByRole("link", { name: /524 Below minimum/ })
+    expect(link).toHaveAttribute("href", "/?band_status=below_minimum")
+
+    expect(screen.getByRole("link", { name: /Review everyone outside their band/ }))
+      .toHaveAttribute("href", "/?band_status=out_of_band")
+  })
+
   it("shows distributions by level and can switch dimension", async () => {
     stubApi({ "/insights": insights() })
     const user = userEvent.setup()

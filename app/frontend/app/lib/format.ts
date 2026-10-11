@@ -60,6 +60,7 @@ const BAND_LABELS: Record<string, string> = {
   below_minimum: "Below minimum",
   within_band: "In band",
   above_maximum: "Above maximum",
+  out_of_band: "Outside band",
 }
 
 export const formatBandStatus = (status: string | null) =>

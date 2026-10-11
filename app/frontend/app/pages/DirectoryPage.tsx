@@ -34,6 +34,16 @@ const COLUMNS: { key: SortKey; label: string; numeric?: boolean }[] = [
   { key: "compa_ratio", label: "Compa-ratio", numeric: true },
 ]
 
+// Ordered so the two that need action come first. "Outside band" leads because
+// it is the question HR actually asks: who needs a conversation, in either
+// direction.
+const BAND_OPTIONS = [
+  { value: "out_of_band", label: "Outside band" },
+  { value: "below_minimum", label: "Below minimum" },
+  { value: "above_maximum", label: "Above maximum" },
+  { value: "within_band", label: "In band" },
+]
+
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "terminated", label: "Left" },
@@ -54,6 +64,7 @@ export function DirectoryPage() {
     country_code: params.get("country_code") ?? undefined,
     department_id: params.get("department_id") ?? undefined,
     job_level_id: params.get("job_level_id") ?? undefined,
+    band_status: params.get("band_status") ?? undefined,
     sort: params.get("sort") ?? "name",
     direction: (params.get("direction") ?? "asc") as "asc" | "desc",
   }
@@ -97,13 +108,22 @@ export function DirectoryPage() {
 
   const meta = employees.data?.meta
 
+  // A filtered count is misleading unless the reader can see it is filtered:
+  // "524 employees" and "524 employees, below minimum" mean very different
+  // things to someone glancing at the page.
+  const bandFilterLabel = filters.band_status
+    ? ` · ${(BAND_OPTIONS.find((option) => option.value === filters.band_status)?.label ?? "").toLowerCase()}`
+    : ""
+
   return (
     <Stack gap="md">
       <Group justify="space-between" align="flex-end" wrap="wrap">
         <div>
           <Title order={2}>Directory</Title>
           <Text c="dimmed" size="sm">
-            {meta ? `${meta.total_count.toLocaleString("en-GB")} employees` : " "}
+            {meta
+              ? `${meta.total_count.toLocaleString("en-GB")} employees${bandFilterLabel}`
+              : "\u00A0"}
           </Text>
         </div>
         <Button
@@ -157,6 +177,15 @@ export function DirectoryPage() {
             value={filters.job_level_id ?? null}
             onChange={(value) => update({ job_level_id: value ?? undefined })}
             w={{ base: "100%", sm: 150 }}
+          />
+          <Select
+            label="Band status"
+            placeholder="Any"
+            clearable
+            data={BAND_OPTIONS}
+            value={filters.band_status ?? null}
+            onChange={(value) => update({ band_status: value ?? undefined })}
+            w={{ base: "100%", sm: 160 }}
           />
           <Select
             label="Status"

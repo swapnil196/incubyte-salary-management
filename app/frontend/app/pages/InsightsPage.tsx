@@ -1,5 +1,6 @@
 import {
   Alert,
+  Anchor,
   Box,
   Card,
   Group,
@@ -12,6 +13,7 @@ import {
   Title,
 } from "@mantine/core"
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "react-router-dom"
 import type { Insights } from "~/app/api/types"
 import { fetchInsights } from "~/app/api/employees"
 import { DistributionTable } from "~/app/components/DistributionTable"
@@ -74,10 +76,18 @@ export function InsightsPage() {
           </SimpleGrid>
 
           <Card withBorder padding="md">
-            <Title order={4}>Against pay bands</Title>
-            <Text size="sm" c="dimmed" mb="sm">
-              Who sits outside the expected range for their level and country
-            </Text>
+            <Group justify="space-between" align="flex-start" wrap="wrap" gap="xs">
+              <div>
+                <Title order={4}>Against pay bands</Title>
+                <Text size="sm" c="dimmed">
+                  Who sits outside the expected range for their level and country
+                </Text>
+              </div>
+              <Anchor component={Link} to="/?band_status=out_of_band" size="sm">
+                Review everyone outside their band →
+              </Anchor>
+            </Group>
+            <Box mb="sm" />
 
             <BandStatusBar counts={insights.data.band_status} />
           </Card>
@@ -150,17 +160,25 @@ function BandStatusBar({ counts }: { counts: Record<string, number> }) {
       </Group>
       <Group gap="lg" wrap="wrap">
         {BAND_SEGMENTS.map((segment) => (
-          <Group key={segment.key} gap={6} wrap="nowrap">
-            <Box w={10} h={10} bg={segment.colour} style={{ borderRadius: 2 }} />
-            <Text size="sm">
-              <Text span fw={600} ff="monospace">
-                {(counts[segment.key] ?? 0).toLocaleString("en-GB")}
-              </Text>{" "}
-              <Text span c="dimmed">
-                {segment.label}
+          <Anchor
+            key={segment.key}
+            component={Link}
+            to={`/?band_status=${segment.key}`}
+            underline="hover"
+            c="inherit"
+          >
+            <Group gap={6} wrap="nowrap">
+              <Box w={10} h={10} bg={segment.colour} style={{ borderRadius: 2 }} />
+              <Text size="sm">
+                <Text span fw={600} ff="monospace">
+                  {(counts[segment.key] ?? 0).toLocaleString("en-GB")}
+                </Text>{" "}
+                <Text span c="dimmed">
+                  {segment.label}
+                </Text>
               </Text>
-            </Text>
-          </Group>
+            </Group>
+          </Anchor>
         ))}
       </Group>
     </>

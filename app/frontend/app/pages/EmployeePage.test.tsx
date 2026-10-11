@@ -15,6 +15,7 @@ const reference = {
     job_levels: [],
     countries: [],
     change_reasons: ["merit", "promotion"],
+    band_statuses: ["out_of_band", "below_minimum", "above_maximum", "within_band"],
     currencies: ["EUR", "USD"],
     base_currency: "EUR",
   },

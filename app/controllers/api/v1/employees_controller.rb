@@ -14,7 +14,8 @@ module Api
             total_pages: result.total_pages,
             sort: query.sort,
             direction: query.direction,
-            status: query.status
+            status: query.status,
+            band_status: query.band_status
           }
         }
       end
@@ -39,7 +40,7 @@ module Api
 
       def filter_params
         params.permit(:page, :per_page, :q, :sort, :direction, :status,
-                      :country_code, :department_id, :job_level_id)
+                      :country_code, :department_id, :job_level_id, :band_status)
       end
     end
   end

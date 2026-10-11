@@ -11,6 +11,7 @@ export interface DirectoryFilters {
   country_code?: string
   department_id?: string
   job_level_id?: string
+  band_status?: string
 }
 
 export const fetchEmployees = (filters: DirectoryFilters) =>
@@ -37,6 +38,7 @@ export interface Reference {
   job_levels: { id: number; name: string; rank: number }[]
   countries: string[]
   change_reasons: string[]
+  band_statuses: string[]
   currencies: string[]
   base_currency: string
 }

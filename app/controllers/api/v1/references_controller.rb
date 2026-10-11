@@ -12,6 +12,7 @@ module Api
             # nobody in it is not a useful filter.
             countries: Employee.distinct.order(:country_code).pluck(:country_code),
             change_reasons: SalaryRecord::CHANGE_REASONS,
+            band_statuses: Employees::Query::BAND_STATUS_CONDITIONS.keys,
             currencies: [ BASE_CURRENCY, *FxRate.distinct.order(:currency).pluck(:currency) ].uniq,
             base_currency: BASE_CURRENCY
           }

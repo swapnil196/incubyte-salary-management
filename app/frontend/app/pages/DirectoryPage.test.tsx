@@ -10,6 +10,7 @@ const reference = {
     job_levels: [{ id: 1, name: "Senior", rank: 4 }],
     countries: ["DE", "US"],
     change_reasons: ["merit"],
+    band_statuses: ["out_of_band", "below_minimum", "above_maximum", "within_band"],
     currencies: ["EUR"],
     base_currency: "EUR",
   },
@@ -148,6 +149,46 @@ describe("DirectoryPage", () => {
 
     expect(link).toHaveAttribute("href", expect.stringContaining("country_code=DE"))
     expect(link).toHaveAttribute("href", expect.stringContaining("status=all"))
+  })
+
+  it("asks the server for people outside their band when the filter is set", async () => {
+    // Asserted through the URL rather than by driving the dropdown: the filter
+    // state lives in the URL by design, so this is the real contract. Clicking
+    // through Mantine's portal-rendered listbox would test the library.
+    const fetchMock = stubApi({ "/reference": reference, "/employees": page() })
+
+    renderPage(<DirectoryPage />, { route: "/?band_status=below_minimum" })
+    await screen.findByRole("row", { name: /Ada Lovelace/ })
+
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]))
+    expect(urls.some((url) => url.includes("band_status=below_minimum"))).toBe(true)
+  })
+
+  it("offers a band status control with the actionable options first", async () => {
+    stubApi({ "/reference": reference, "/employees": page() })
+
+    renderPage(<DirectoryPage />)
+    await screen.findByRole("row", { name: /Ada Lovelace/ })
+
+    expect(screen.getByPlaceholderText("Any")).toBeInTheDocument()
+  })
+
+  it("says in the heading that the count is a filtered one", async () => {
+    stubApi({ "/reference": reference, "/employees": page({ total_count: 524 }) })
+
+    renderPage(<DirectoryPage />, { route: "/?band_status=below_minimum" })
+
+    expect(await screen.findByText(/524 employees/)).toHaveTextContent("below minimum")
+  })
+
+  it("carries the band filter into the export link", async () => {
+    stubApi({ "/reference": reference, "/employees": page() })
+
+    renderPage(<DirectoryPage />, { route: "/?band_status=out_of_band" })
+
+    const link = await screen.findByRole("link", { name: "Export CSV" })
+
+    expect(link).toHaveAttribute("href", expect.stringContaining("band_status=out_of_band"))
   })
 
   it("says so when nothing matches, instead of showing an empty table", async () => {

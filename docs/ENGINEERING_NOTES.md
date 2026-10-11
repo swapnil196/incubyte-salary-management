@@ -585,3 +585,36 @@ as a constant in the frontend.
 **Pay equity differences carry an explicit sign** and a diverging colour pair around a neutral
 midpoint, with anything under 0.05% treated as no difference so rounding noise is not coloured as a
 gap.
+
+---
+
+## Closing the outliers gap
+
+The dashboard counted who sits outside their pay band; nothing listed them. The requirement in
+§2B is *"**who** is paid below the minimum or above the maximum"*, and a count answers "how many".
+With 525 people spread over 369 pages, sorting by compa-ratio and reading badges is not an answer.
+
+**The filter lives on the server**, as a key into a frozen hash of SQL conditions. The request
+supplies `below_minimum`, never a fragment, and an unrecognised value is ignored rather than
+rejected. A spec sends `1=1; DROP TABLE employees--` and asserts both a normal 200 and that the
+table still has its rows.
+
+**`out_of_band` is the option HR actually reaches for** — both directions at once — so it is listed
+first in the control. The question is "who needs a conversation", not "who is cheap".
+
+**Counting needed a change that no other filter did.** Every other filter reads columns on
+`employees`, so the count query runs against a bare scope with no joins. A band filter compares the
+current salary against the band, so both tables have to be joined in for the count as well, or the
+total disagrees with the rows returned. A spec requests `per_page=1` and asserts one row with a
+total of two, which fails if the count scope loses its joins.
+
+**The edges stay inclusive and the gaps stay excluded.** Paid exactly at the minimum is in band.
+Someone with no salary, or no band defined for their level and country, has no band status at all
+and appears under no filter — they are not "in band" by default, because there is no band.
+
+**The dashboard counts now link into the filtered directory**, and a cross-check spec pins the two
+together. They are computed by different objects through different SQL and could drift; a dashboard
+reading 525 beside a list of 524 would destroy confidence in both. The spec also asserts the three
+buckets sum to exactly the number of classifiable employees, so nobody is double-counted or lost.
+
+Verified on the seeded data: 525 + 8,235 + 460 = 9,220, which is the active headcount exactly.
