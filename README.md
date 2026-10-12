@@ -30,8 +30,8 @@ bin/dev                   # Rails + Vite together
 ## Checks
 
 ```sh
-bundle exec rspec     # 238 examples — models, services, requests
-npm test              # 42 tests — components and formatters
+bundle exec rspec     # 248 examples — models, services, requests
+npm test              # 47 tests — components and formatters
 npm run typecheck     # TypeScript
 bin/rubocop           # Ruby style
 bin/brakeman          # static security analysis
@@ -39,8 +39,8 @@ bin/bundler-audit     # known gem vulnerabilities
 bin/rails benchmark   # reproducible performance measurements
 ```
 
-All run in CI on every push. Line coverage is 99%, weighted towards money arithmetic, effective
-dating and malformed input rather than spread evenly.
+Line coverage is 99%, weighted towards money arithmetic, effective dating and malformed input
+rather than spread evenly.
 
 ## What it does
 
@@ -98,8 +98,6 @@ Full analysis, query plans, and the optimisations deliberately **not** made are 
 | [ENGINEERING_NOTES.md](docs/ENGINEERING_NOTES.md) | Per-commit performance, security and scalability analysis |
 | [PERFORMANCE.md](docs/PERFORMANCE.md) | Timings, query plans, limits, and a measurement error |
 | [AI_USAGE.md](docs/AI_USAGE.md) | How AI was used, and the twelve places its output was wrong |
-| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Container, volume, secrets — and what is unverified |
-| [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | Five-minute walkthrough |
 
 ## Not built, on purpose
 
@@ -107,13 +105,24 @@ Login and permissions, payroll execution, bonuses and equity, approval workflows
 live FX feeds, UI translation. Each is argued individually in
 [REQUIREMENTS.md §3](docs/REQUIREMENTS.md).
 
-Login is the one to add first: it is the only exclusion that blocks real use. The deployed instance
-is therefore behind HTTP Basic auth ([ADR 005](docs/adr/005-no-auth-in-v1.md)) — not as a
-substitute for access control, but so a dataset that looks like real compensation data is not
-readable by anyone who finds the URL.
+Login is the one to add first: it is the only exclusion that blocks real use. Everything else on
+that list is a missing feature; that one is the reason this could not go in front of a real HR
+team. The reasoning is in [ADR 005](docs/adr/005-no-auth-in-v1.md).
+
+**Deployment is also deliberately out of scope.** This runs locally and is demonstrated on video.
+
+Hosting it would have meant putting 10,000 realistic-looking salary records on a public URL, which
+then needs access control — and access control is the thing explicitly excluded above. The honest
+options were to build the auth that was scoped out, or to leave a compensation dataset readable by
+anyone who found the link. Neither is a good trade for an exercise, so the application was built to
+be run and read rather than hosted.
+
+Nothing in the design depends on that choice. Persistence sits behind ActiveRecord with no
+SQLite-specific code, so moving to Postgres is a `database.yml` change
+([ADR 004](docs/adr/004-sqlite-with-a-postgres-path.md)), and the frontend is served by the same
+application rather than a separate host ([ADR 001](docs/adr/001-single-rails-app-serving-react.md)).
 
 ## Status
 
-Built, tested and documented. **Not yet deployed** — the Dockerfile and `fly.toml` are written but
-the image has not been built and nothing is running anywhere. [DEPLOYMENT.md](docs/DEPLOYMENT.md)
-says exactly what has and has not been verified.
+Built, tested and documented, running locally. 255 Ruby examples and 47 frontend tests pass;
+Rubocop, Brakeman and bundler-audit are clean.

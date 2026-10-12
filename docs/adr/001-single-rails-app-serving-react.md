@@ -29,7 +29,8 @@ served by Rails. The API lives under an explicit `/api/v1` namespace and returns
 
 - The frontend cannot be deployed independently of the backend, or scaled separately. For a
   single-user internal tool neither matters.
-- The deploy host needs Node at build time. Handled in the Dockerfile.
+- Any host would need Node at build time to compile the frontend bundle. Moot while the
+  application runs locally only.
 
 ## Alternatives considered
 

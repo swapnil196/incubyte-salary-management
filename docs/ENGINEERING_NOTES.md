@@ -327,8 +327,8 @@ excludes leavers without needing a special case, because the aggregate joins on
 `effective_to IS NULL`. Verified: 9,220 active employees, 9,220 open records, zero terminated
 employees with an open record.
 
-**`faker` moved out of the development group.** The seed has to be runnable against the deployed
-instance, and a gem scoped to development would make that fail at the point it mattered.
+**`faker` moved out of the development group.** `db/seeds.rb` must run in any environment, and a
+gem scoped to development would make it fail wherever it was not loaded.
 
 **The seed spec runs the real generator at 60 rows.** It asserts determinism, that every active
 employee has exactly one salary in force, that no leaver has an open record, that history is
@@ -537,9 +537,10 @@ actually a JavaScript one.
 Hit during development: the router referenced page components that did not exist yet, the build
 failed, and the resulting Ruby failure pointed at an ERB template rather than at the missing file.
 
-CI now builds assets explicitly before running RSpec, so a frontend compile error fails its own
-step with the compiler's message. `autoBuild` stays enabled locally, where the convenience is worth
-more than the clarity.
+Worth knowing when running the suite: if the Ruby specs fail with "can't find
+entrypoints/application.tsx in the manifests", build the frontend first with
+`bin/vite build --mode=test`. `autoBuild` normally handles it, but a failed frontend compile
+surfaces as a confusing Ruby error pointing at an ERB template.
 
 ### Typed suppression on the client
 

@@ -9,8 +9,8 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Builds and serves the React bundle from this same application (ADR 001).
 gem "vite_rails", "~> 3.0"
 
-# Used by the seed script, which has to be runnable against the deployed
-# instance, so it cannot live in the development group.
+# Used by db/seeds.rb, which must run in any environment, so it cannot live in
+# the development group.
 gem "faker", "~> 3.5"
 
 # No longer a default gem as of Ruby 3.4. Used by the directory export.
